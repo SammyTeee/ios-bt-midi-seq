@@ -3,7 +3,7 @@ import XCTest
 
 final class CompositionTests: XCTestCase {
     func testStepRecordingWrapsAndRestAdvances() {
-        var pattern = Pattern()
+        var pattern = SequenceCore.Pattern()
         var scale = ScaleLock(); scale.enabled = true
         XCTAssertEqual(PatternEdit.record(note: 61, at: 0, pattern: &pattern, scale: scale), 1)
         XCTAssertEqual(pattern.steps[0].note, 60)

@@ -72,7 +72,7 @@ struct PianoRoll: View {
                                 var copy = original ?? pattern
                                 var note = movingExisting ? copy.steps[sourceIndex] : Step()
                                 if movingExisting { copy.steps[sourceIndex].enabled = false }
-                                note.note = target.1; note.enabled = true
+                                note.note = scale.snap(target.1); note.enabled = true
                                 copy.steps[target.0] = note
                                 pattern = copy; selected = target.0
                             }
@@ -86,7 +86,7 @@ struct PianoRoll: View {
                                     selected = target.0
                                 } else {
                                     pattern.steps[target.0].enabled = !(before.steps[target.0].enabled && before.steps[target.0].note == target.1)
-                                    pattern.steps[target.0].note = target.1
+                                    pattern.steps[target.0].note = scale.snap(target.1)
                                     selected = target.0
                                 }
                             }
@@ -105,7 +105,7 @@ struct PianoRoll: View {
     private func cell(_ point: CGPoint, columnWidth: CGFloat, rowHeight: CGFloat) -> (Int, Int) {
         let column = min(columns - 1, max(0, Int(point.x / columnWidth)))
         let row = min(11, max(0, Int(point.y / rowHeight)))
-        return (min(pattern.length - 1, page * columns + column), scale.snap(lowNote + 11 - row))
+        return (min(pattern.length - 1, page * columns + column), min(127, lowNote + 11 - row))
     }
 
     private func isBlack(_ note: Int) -> Bool { [1, 3, 6, 8, 10].contains(note % 12) }
