@@ -25,6 +25,7 @@ public struct Song: Codable, Equatable {
     public var channel = 1
     public var patterns = Array(repeating: Pattern(), count: 8)
     public var chain = [0]
+    public var scaleLock: ScaleLock? = nil
     public init() {}
 
     public func validated() throws -> Song {
@@ -32,6 +33,7 @@ public struct Song: Codable, Equatable {
               (1...16).contains(channel), patterns.count == 8,
               (1...128).contains(chain.count), chain.allSatisfy({ (0..<8).contains($0) })
         else { throw SongError.invalid }
+        if let scaleLock, !(0...11).contains(scaleLock.root) { throw SongError.invalid }
         for pattern in patterns {
             guard [16, 32, 48, 64].contains(pattern.length), pattern.steps.count == 64
             else { throw SongError.invalid }

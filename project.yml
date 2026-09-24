@@ -6,7 +6,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: '5.0'
-    MARKETING_VERSION: '0.1.0'
+    MARKETING_VERSION: '0.2.0'
     CURRENT_PROJECT_VERSION: '1'
     TARGETED_DEVICE_FAMILY: '1,2'
 targets:
@@ -23,6 +23,9 @@ targets:
       path: build/Info.plist
       properties:
         CFBundleDisplayName: Pocket Sequence
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UIRequiresFullScreen: true
         UILaunchScreen: {}
         NSBluetoothAlwaysUsageDescription: Connect to your synthesizer to send MIDI notes over Bluetooth.
         UISupportedInterfaceOrientations:
@@ -34,8 +37,21 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+  PocketSequenceUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    dependencies:
+      - target: PocketSequence
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   PocketSequence:
     build:
       targets:
         PocketSequence: all
+    test:
+      targets:
+        - PocketSequenceUITests

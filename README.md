@@ -4,7 +4,10 @@ A native iPhone/iPad step sequencer for the M-VAVE FM-1 and other MIDI synths. S
 
 - Eight banks (A–H), each with 16, 32, 48 or 64 sixteenth-note steps.
 - One note per step, rests, velocity and gate length.
-- Pattern looping or a looping song chain with up to 128 entries, including repeated banks.
+- Live pattern launch: tap another bank to queue it for the end of the current pattern. Tap a different bank to replace the queue; tap the queued bank again to cancel. Saved song chains are also available.
+- Adaptive piano roll: 16 visible steps in landscape, eight in portrait. Tap to add/remove and drag to move notes.
+- Step Record: tap the piano keys to enter notes sequentially; Rest advances with a gap. The cursor wraps at the pattern end.
+- Scale lock (root plus major, minor, Dorian, pentatonic or chromatic), repeatable seed generation with density and octave range, and one-level pattern undo.
 - Bluetooth MIDI connection panel, output selection and MIDI channels 1–16. USB MIDI endpoints work too.
 - Automatic local save, JSON session import/export, bank copy and clear.
 - Dedicated clock queue with timestamped note on/off scheduling. Stop flushes pending output and sends note-offs; panic button for stuck notes.
@@ -15,7 +18,11 @@ Open [Actions](https://github.com/SammyTeee/ios-bt-midi-seq/actions/workflows/io
 
 GitHub's macOS runner runs core tests, compiles simulator and device apps, and packages the device app. No Apple credentials or certificates are needed in GitHub. **The IPA is unsigned: Windows sideloading software signs it for your phone.** Opening the file directly on your iPhone will not install it.
 
-### Windows installation: Sideloadly
+### Windows installation: AltStore Classic (preferred)
+
+Keep AltServer running on Windows with your iPhone on the same Wi-Fi or connected by USB. Put the extracted `.ipa` in Files on your phone, then choose **AltStore → My Apps → +** and select it. Install updates with the same Apple account and bundle identifier to preserve sessions. Export sessions as a backup before updating. Free-account apps need refreshing within seven days. See [AltStore's Windows guide](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows).
+
+### Alternative: Sideloadly
 
 1. Download Sideloadly from its official site: <https://sideloadly.io/>. Follow its current Windows prerequisites for Apple device drivers/iTunes and iCloud; use the links on that site.
 2. Connect the iPhone by USB, unlock it, and trust the computer when prompted.
@@ -31,18 +38,26 @@ Free Apple accounts require re-signing every **7 days**. Sideloadly offers autom
 ## Connect the FM-1
 
 1. Enable FM-1 Bluetooth (long-press HOME/BT according to its manual).
-2. In Pocket Sequence tap **Connect**, then choose the FM-1 in Apple's Bluetooth MIDI panel.
+2. Tap the antenna icon → **Connect Bluetooth MIDI**, then choose the FM-1 in Apple's Bluetooth MIDI panel.
 3. Tap **Done** and explicitly select the FM-1 in **Output**. Match the MIDI channel to the synth's receive channel.
 4. Stop the synth's internal sequencer/arp. Enable notes in the app and press Play.
 5. Listen through the synth's speaker or audio output. Bluetooth MIDI sends musical instructions, not audio.
 
-Tap a step to select it, then tap again or use its toggle to enable it. Set pitch, velocity and gate below the grid. Use bank pages to edit beyond 16 steps. Append banks in **Song chain**, choose **Play chain**, then Play. Tap chain entries to remove them; at least one remains. Copying a bank replaces its target. Shortening a pattern retains hidden steps so extending it restores them.
+The main screen contains transport, bank launchers, piano roll and entry controls. MIDI, tempo, scale, generator, chain and session controls open in sheets. Turn off iPhone Rotation Lock to use landscape.
+
+Tap an empty piano-roll cell to add a note, tap it again to erase, or drag to change its pitch/step. Each step holds one note. The octave menu selects the visible pitch range; arrows indicate notes outside it. The page menu selects later steps. Gate and velocity controls are below the grid in portrait or under **Note** in landscape.
+
+Enable **Step Record** (REC in landscape), then tap the piano keys down the left edge. Notes are entered consecutively, with automatic page advancement. **Rest →** writes a rest and advances. Tap the grid to reposition the cursor. Input wraps at the end of the bank. While stopped, piano-key input auditions on the selected MIDI output. During playback it edits without sending extra notes.
+
+Tap A–H to launch a bank; if already playing it queues for the next whole-pattern boundary. Green means playing, amber means queued, and the white outline marks the bank being edited. Without a MIDI output, bank taps select for editing only. Use **Edit A/B…** to inspect a different bank without launching it. Follow playing pattern can be toggled there. The latest queued choice wins; tapping the queued bank cancels it. A launch during saved-chain playback takes over into a live loop at the boundary.
+
+**Tools → Scale lock** snaps new/moved notes and generated notes. Existing notes are preserved unless **Snap existing notes** is chosen. **Seed generator** previews a repeatable pattern from a numeric seed, density, octave and range. Apply replaces the edited bank. **Pattern tools → Undo** restores the previous pattern edit while stopped. Copy and clear are also there. Shortening a bank retains its hidden notes.
 
 ## First-version limits and hardware validation
 
-Playback is foreground-only: the display stays awake during playback, and entering the background stops playback and sends note-offs. Edits are disabled while playing; stop to change tempo, notes, routing or the chain. Bluetooth pairing may interrupt playback, so connect before starting.
+Playback is foreground-only: the display stays awake during playback, and entering the background stops playback and sends note-offs. Notes can be edited live; an already scheduled note may have up to 20ms of lookahead. Stop to change tempo, pattern length, routing or the saved chain. Bluetooth pairing may interrupt playback, so connect before starting.
 
-This is an external monophonic step sequencer, not an editor for the FM-1's internal sequence memory. It does not yet record incoming MIDI, send MIDI clock/transport, provide chords, swing, ties or CC automation. The external synth plays incoming notes directly without needing clock sync.
+This is an external monophonic step sequencer, not an editor for the FM-1's internal sequence memory. It does not yet record incoming MIDI, send MIDI clock/transport, provide chords, swing, ties, glide or CC automation. The external synth plays incoming notes directly without needing clock sync. Existing 0.1 session files remain compatible.
 
 CI compilation and model tests cannot verify physical BLE MIDI timing or FM-1 firmware behaviour. Before relying on it live, test: connect → one note → 64-step bank → A/A/B chain → Stop during a long gate → disconnect while playing → reconnect → background the app. Verify no notes stick. USB is a fallback if radio timing is inconsistent.
 

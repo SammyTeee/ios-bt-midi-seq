@@ -53,14 +53,14 @@ struct BluetoothPicker: UIViewControllerRepresentable {
 final class SequencerEngine: ObservableObject {
     @Published private(set) var playing = false
     @Published private(set) var current: PlaybackStep?
+    @Published private(set) var queuedBank: Int?
     @Published var error: String?
     private let queue = DispatchQueue(label: "uk.co.lansystems.sequence.clock", qos: .userInteractive)
     private var timer: DispatchSourceTimer?
     private var destination = MIDIEndpointRef()
     private var port = MIDIPortRef()
     private var channel: UInt8 = 0
-    private var events: [PlaybackStep] = []
-    private var position = 0
+    private var transport: PatternTransport?
     private var nextTime: UInt64 = 0
     private var interval: UInt64 = 0
     private var token = UUID()
@@ -88,8 +88,7 @@ final class SequencerEngine: ObservableObject {
             destination = output
             port = outputPort
             channel = UInt8(song.channel - 1)
-            events = song.playback(loopPattern: bank)
-            position = 0
+            transport = PatternTransport(song: song, bank: bank)
             interval = ticks(60 / song.bpm / 4)
             nextTime = mach_absolute_time() + ticks(0.04)
             let clock = DispatchSource.makeTimerSource(queue: queue)
@@ -112,7 +111,7 @@ final class SequencerEngine: ObservableObject {
             }
             return
         }
-        let event = events[position]
+        guard let event = transport?.next() else { return }
         if event.value.enabled {
             let note = UInt8(event.value.note)
             let on = send([0x90 | channel, note, UInt8(event.value.velocity)], at: nextTime)
@@ -131,9 +130,34 @@ final class SequencerEngine: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, self.token == run, self.playing else { return }
             self.current = event
+            self.queuedBank = self.queue.sync { self.transport?.queuedBank }
         }
-        position = (position + 1) % events.count
         nextTime += interval
+    }
+
+    func queuePattern(_ bank: Int) {
+        guard playing else { return }
+        queuedBank = queue.sync {
+            transport?.request(bank)
+            return transport?.queuedBank
+        }
+    }
+
+    func update(song: Song) {
+        guard playing, (try? song.validated()) != nil else { return }
+        queue.sync { transport?.song = song }
+    }
+
+    func audition(note: Int, velocity: Int, connection: MIDIConnection, midiChannel: Int) {
+        // Audition only while stopped so it cannot cut a sequenced note short.
+        guard !playing, connection.selected != 0 else { return }
+        stop()
+        queue.sync {
+            destination = connection.selected; port = connection.port
+            channel = UInt8(midiChannel - 1)
+            send([0x90 | channel, UInt8(note), UInt8(velocity)])
+            send([0x80 | channel, UInt8(note), 0], at: mach_absolute_time() + ticks(0.18))
+        }
     }
 
     @discardableResult private func send(_ bytes: [UInt8], at time: MIDITimeStamp = 0) -> OSStatus {
@@ -141,8 +165,8 @@ final class SequencerEngine: ObservableObject {
         return withUnsafeMutablePointer(to: &list) { pointer in
             let packet = MIDIPacketListInit(pointer)
             return bytes.withUnsafeBufferPointer { buffer in
-                guard MIDIPacketListAdd(pointer, MemoryLayout<MIDIPacketList>.size, packet,
-                                        time, bytes.count, buffer.baseAddress!) != nil else { return OSStatus(-1) }
+                _ = MIDIPacketListAdd(pointer, MemoryLayout<MIDIPacketList>.size, packet,
+                                     time, bytes.count, buffer.baseAddress!)
                 return MIDISend(port, destination, pointer)
             }
         }
@@ -163,6 +187,8 @@ final class SequencerEngine: ObservableObject {
         queue.sync { halt() }
         playing = false
         current = nil
+        queuedBank = nil
+        queue.sync { transport = nil }
     }
 
     func panic(connection: MIDIConnection, midiChannel: Int) {
