@@ -32,6 +32,31 @@ final class SequencerUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["entry-cursor"].label, "1 · C4")
     }
 
+    func testDrumNavigationEditingAndPersistence() {
+        let app = XCUIApplication()
+        XCUIDevice.shared.orientation = .portrait
+        app.launch()
+        XCTAssertTrue(app.buttons["open-drums"].waitForExistence(timeout: 15))
+        app.buttons["open-drums"].tap()
+        let step = app.buttons["drum-0-0"]
+        XCTAssertTrue(step.waitForExistence(timeout: 5))
+        let original = step.value as? String
+        step.tap()
+        let edited = step.value as? String
+        XCTAssertNotEqual(original, edited)
+        capture("Drum machine portrait")
+        app.buttons["drum-done"].tap()
+        XCTAssertTrue(app.buttons["open-drums"].waitForExistence(timeout: 5))
+        app.buttons["open-drums"].tap()
+        XCTAssertTrue(step.waitForExistence(timeout: 5))
+        XCTAssertEqual(step.value as? String, edited)
+        step.tap()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["drum-done"].waitForExistence(timeout: 5))
+        capture("Drum machine landscape")
+        app.buttons["drum-done"].tap()
+    }
+
     private func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways

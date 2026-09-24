@@ -53,6 +53,14 @@ Tap A–H to launch a bank; if already playing it queues for the next whole-patt
 
 **Tools → Scale lock** snaps new/moved notes and generated notes. Existing notes are preserved unless **Snap existing notes** is chosen. **Seed generator** previews a repeatable pattern from a numeric seed, density, octave and range. Apply replaces the edited bank. **Pattern tools → Undo** restores the previous pattern edit while stopped. Copy and clear are also there. Shortening a bank retains its hidden notes.
 
+## Drum machine
+
+Tap **Drums** below the bank buttons to open the standalone drum machine. It has synthesized kick, snare, closed hi-hat and clap sounds, a 16-step pattern, audition buttons, and a 40–240 BPM tempo control. No samples, extra apps, or MIDI connection are required: listen through your phone's audio output or headphones.
+
+Tap numbered steps to toggle hits, then press **Play**. Stop before editing or changing tempo. **Starter beat** restores the default beat and tempo; **Clear** empties the grid after confirmation. The beat and tempo save automatically on this device, separately from MIDI session JSON exports. Opening Drums stops MIDI playback; Done or leaving the foreground stops drum audio. This initial version does not synchronize drums with the MIDI sequencer.
+
+The existing **Build iOS IPA** GitHub Actions workflow includes the new screen, synthesis tests and navigation UI test automatically. Push changes to `main`/`master` (or run the workflow manually after pushing), then download the unsigned IPA as described above. Local Windows development does not require Xcode; actual iOS compilation happens on the macOS runner.
+
 ## First-version limits and hardware validation
 
 Playback is foreground-only: the display stays awake during playback, and entering the background stops playback and sends note-offs. Notes can be edited live; an already scheduled note may have up to 20ms of lookahead. Stop to change tempo, pattern length, routing or the saved chain. Bluetooth pairing may interrupt playback, so connect before starting.

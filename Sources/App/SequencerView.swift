@@ -14,6 +14,7 @@ struct SequencerView: View {
     @State private var follow = true
     @State private var panel: Panel?
     @State private var bluetooth = false
+    @State private var showingDrums = false
     @State private var importing = false
     @State private var exporting = false
     @State private var clearing = false
@@ -52,6 +53,7 @@ struct SequencerView: View {
         }
         .tint(Palette.lime)
         .sheet(item: $panel) { panelView($0) }
+        .fullScreenCover(isPresented: $showingDrums) { DrumMachineView() }
         .sheet(isPresented: $bluetooth, onDismiss: { midi.refresh() }) {
             NavigationStack {
                 BluetoothPicker().navigationTitle("Bluetooth MIDI").navigationBarTitleDisplayMode(.inline)
@@ -157,7 +159,14 @@ struct SequencerView: View {
                         .contextMenu { Button("Edit bank \(Palette.banks[index])") { follow = false; selectBank(index) } }
                 }
             }
-            if !wide { status.font(.caption.monospaced()).frame(maxWidth: .infinity, alignment: .leading) }
+            HStack {
+                if !wide { status.font(.caption.monospaced()) }
+                Spacer()
+                Button("Drums", systemImage: "square.grid.3x3.fill") {
+                    engine.stop()
+                    showingDrums = true
+                }.font(.caption.weight(.semibold)).accessibilityIdentifier("open-drums")
+            }
         }
     }
 
