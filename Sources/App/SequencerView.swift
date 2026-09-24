@@ -198,7 +198,7 @@ struct SequencerView: View {
             }.buttonStyle(.bordered).tint(stepRecord ? Palette.amber : .gray)
                 .accessibilityIdentifier("step-record").accessibilityValue(stepRecord ? "On" : "Off")
             if stepRecord {
-                Button("Rest →") { remember(); selected = PatternEdit.record(note: nil, at: selected, pattern: &store.song.patterns[bank], scale: scale) }
+                Button("Rest →") { recordEntry(nil) }
                     .font(.caption.weight(.semibold)).accessibilityIdentifier("record-rest")
             } else {
                 Button { remember(); step.wrappedValue.enabled = false } label: { Image(systemName: "eraser") }.accessibilityLabel("Erase selected step")
@@ -245,11 +245,18 @@ struct SequencerView: View {
         guard let undo else { return }; store.song.patterns[undo.bank] = undo.pattern; selectBank(undo.bank); self.undo = nil
     }
     private func enterKey(_ rawNote: Int, columns: Int) {
-        remember(); let note = scale.snap(rawNote)
+        let note = scale.snap(rawNote)
         if stepRecord {
-            selected = PatternEdit.record(note: note, at: selected, pattern: &store.song.patterns[bank], scale: scale); page = selected / columns
-        } else { step.wrappedValue.note = note; step.wrappedValue.enabled = true }
+            recordEntry(note); page = selected / columns
+        } else { remember(); step.wrappedValue.note = note; step.wrappedValue.enabled = true }
         engine.audition(note: note, velocity: 100, connection: midi, midiChannel: store.song.channel)
+    }
+    private func recordEntry(_ note: Int?) {
+        remember()
+        var pattern = store.song.patterns[bank]
+        let next = PatternEdit.record(note: note, at: selected, pattern: &pattern, scale: scale)
+        store.song.patterns[bank] = pattern
+        selected = next
     }
 
     @ViewBuilder private func panelView(_ value: Panel) -> some View {
