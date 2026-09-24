@@ -30,12 +30,17 @@ public struct Song: Codable, Equatable {
     public func validated() throws -> Song {
         guard version == 1, name.count <= 100, bpm.isFinite, (30...300).contains(bpm),
               (1...16).contains(channel), patterns.count == 8,
-              (1...128).contains(chain.count), chain.allSatisfy({ (0..<8).contains($0) }),
-              patterns.allSatisfy({ pattern in
-                  [16, 32, 48, 64].contains(pattern.length) && pattern.steps.count == 64 &&
-                  pattern.steps.allSatisfy { (0...127).contains($0.note) && (1...127).contains($0.velocity) &&
-                      $0.gate.isFinite && (0.05...0.95).contains($0.gate) }
-              }) else { throw SongError.invalid }
+              (1...128).contains(chain.count), chain.allSatisfy({ (0..<8).contains($0) })
+        else { throw SongError.invalid }
+        for pattern in patterns {
+            guard [16, 32, 48, 64].contains(pattern.length), pattern.steps.count == 64
+            else { throw SongError.invalid }
+            for step in pattern.steps {
+                guard (0...127).contains(step.note), (1...127).contains(step.velocity),
+                      step.gate.isFinite, (0.05...0.95).contains(step.gate)
+                else { throw SongError.invalid }
+            }
+        }
         return self
     }
 
@@ -46,11 +51,14 @@ public struct Song: Codable, Equatable {
 
     public func playback(loopPattern: Int?) -> [PlaybackStep] {
         let order = loopPattern.map { [$0] } ?? chain
-        return order.enumerated().flatMap { position, bank in
-            (0..<patterns[bank].length).map {
-                PlaybackStep(bank: bank, step: $0, chainPosition: position, value: patterns[bank].steps[$0])
+        var result: [PlaybackStep] = []
+        for (position, bank) in order.enumerated() {
+            for index in 0..<patterns[bank].length {
+                result.append(PlaybackStep(bank: bank, step: index, chainPosition: position,
+                                           value: patterns[bank].steps[index]))
             }
         }
+        return result
     }
 }
 
