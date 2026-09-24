@@ -1,0 +1,60 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test song model and chain playback
+        run: swift test
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build simulator app
+        run: >-
+          xcodebuild -project PocketSequence.xcodeproj -scheme PocketSequence
+          -configuration Debug -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO build
+      - name: Build iPhone app without signing
+        run: >-
+          xcodebuild -project PocketSequence.xcodeproj -scheme PocketSequence
+          -configuration Release -sdk iphoneos
+          -destination 'generic/platform=iOS'
+          -derivedDataPath build/device
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          CURRENT_PROJECT_VERSION=${{ github.run_number }} build
+      - name: Package sideloadable IPA
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/device/Build/Products/Release-iphoneos/PocketSequence.app build/ipa/Payload/
+          cd build/ipa
+          /usr/bin/zip -r -q ../PocketSequence-unsigned.ipa Payload
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: PocketSequence-unsigned-IPA
+          path: build/PocketSequence-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: PocketSequence-simulator
+          path: build/simulator/Build/Products/Debug-iphonesimulator/PocketSequence.app
+          retention-days: 7
