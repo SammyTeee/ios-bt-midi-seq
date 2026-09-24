@@ -10,6 +10,42 @@ enum Palette {
     static func name(_ note: Int) -> String { "\(notes[note % 12])\(note / 12 - 1)" }
 }
 
+struct NoteKeyboard: View {
+    let octave: Int
+    let scale: ScaleLock
+    var onKey: (Int) -> Void
+    private let whites = [0, 2, 4, 5, 7, 9, 11]
+    private let blacks = [(1, 1), (3, 2), (6, 4), (8, 5), (10, 6)]
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width / 7
+            ZStack(alignment: .topLeading) {
+                HStack(spacing: 2) {
+                    ForEach(whites, id: \.self) { offset in
+                        key(offset, black: false).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+                ForEach(blacks, id: \.0) { offset, position in
+                    key(offset, black: true)
+                        .frame(width: width * 0.6, height: geometry.size.height * 0.63)
+                        .offset(x: CGFloat(position) * width - width * 0.3)
+                }
+            }
+        }
+    }
+    private func key(_ offset: Int, black: Bool) -> some View {
+        let note = octave * 12 + offset
+        return Button { onKey(note) } label: {
+            VStack { Spacer(minLength: 0); Text(Palette.name(note)).font(.system(size: 10, weight: .semibold, design: .monospaced)).padding(.bottom, 4) }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(black ? Color(white: 0.12) : Color(white: 0.85), in: RoundedRectangle(cornerRadius: 4))
+                .foregroundStyle(black ? Color.white : Color.black)
+                .opacity(scale.enabled && !scale.contains(note) ? 0.45 : 1)
+        }.buttonStyle(.plain).disabled(note > 127)
+            .accessibilityIdentifier("record-key-\(note)").accessibilityLabel("Enter \(Palette.name(note))")
+    }
+}
+
 struct PianoRoll: View {
     @Binding var pattern: Pattern
     @Binding var selected: Int

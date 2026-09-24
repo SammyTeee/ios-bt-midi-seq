@@ -37,7 +37,10 @@ struct SequencerView: View {
                           recording: stepRecord, onKey: { enterKey($0, columns: columns) },
                           onEdit: { undo = (bank, $0) }).frame(maxHeight: .infinity)
                 entryBar(columns: columns, wide: wide)
-                if !wide { noteInspector }
+                if stepRecord {
+                    NoteKeyboard(octave: octave, scale: scale, onKey: { enterKey($0, columns: columns) })
+                        .frame(height: wide ? 54 : 78)
+                } else if !wide { noteInspector }
             }
             .padding(.horizontal, wide ? 12 : 14).padding(.vertical, wide ? 4 : 8)
             .background(Palette.background)
