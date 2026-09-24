@@ -47,7 +47,7 @@ final class DrumMachine: ObservableObject {
             player.scheduleBuffer(buffer, at: nil, options: loop ? [.loops] : [])
             player.play()
             playing = loop
-            UIApplication.shared.isIdleTimerDisabled = loop
+
         } catch {
             stop()
             self.error = "Could not start drum audio: \(error.localizedDescription)"
@@ -58,7 +58,7 @@ final class DrumMachine: ObservableObject {
         player.stop()
         engine.stop()
         playing = false
-        UIApplication.shared.isIdleTimerDisabled = false
+
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -69,9 +69,9 @@ final class DrumMachine: ObservableObject {
 }
 
 struct DrumMachineView: View {
-    @StateObject private var drums = DrumMachine()
+    @ObservedObject var drums: DrumMachine
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
+
     @State private var clearing = false
 
     var body: some View {
@@ -110,7 +110,7 @@ struct DrumMachineView: View {
                         Spacer()
                         Button("Clear", role: .destructive) { clearing = true }
                     }.disabled(drums.playing)
-                    Text("Tap a sound name to audition. Stop to edit the beat or tempo. Audio plays through your phone or connected headphones; no MIDI device is needed. This beat is saved separately from your MIDI session.")
+                    Text("Tap a sound name to audition. Stop to edit the beat or tempo. Audio plays through your phone or connected headphones; no MIDI device is needed. Tap Done to keep drums playing while you use the piano sequencer. This beat is saved separately from your MIDI session.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }.padding()
             }
@@ -119,7 +119,7 @@ struct DrumMachineView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { drums.stop(); dismiss() }.accessibilityIdentifier("drum-done")
+                    Button("Done") { dismiss() }.accessibilityIdentifier("drum-done")
                 }
             }
             .confirmationDialog("Clear the drum pattern?", isPresented: $clearing) {
@@ -132,8 +132,7 @@ struct DrumMachineView: View {
             } message: { Text(drums.error ?? "") }
         }
         .tint(Palette.lime)
-        .onDisappear { drums.stop() }
-        .onChange(of: scenePhase) { _, phase in if phase != .active { drums.stop() } }
+
     }
 
     private func stepButton(_ voice: DrumVoice, step: Int) -> some View {

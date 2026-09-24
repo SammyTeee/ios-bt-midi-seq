@@ -4,6 +4,7 @@ struct SequencerView: View {
     @StateObject private var store = SessionStore()
     @StateObject private var midi = MIDIConnection()
     @StateObject private var engine = SequencerEngine()
+    @StateObject private var drums = DrumMachine()
     @Environment(\.scenePhase) private var scenePhase
     @State private var bank = 0
     @State private var page = 0
@@ -53,7 +54,7 @@ struct SequencerView: View {
         }
         .tint(Palette.lime)
         .sheet(item: $panel) { panelView($0) }
-        .fullScreenCover(isPresented: $showingDrums) { DrumMachineView() }
+        .fullScreenCover(isPresented: $showingDrums) { DrumMachineView(drums: drums) }
         .sheet(isPresented: $bluetooth, onDismiss: { midi.refresh() }) {
             NavigationStack {
                 BluetoothPicker().navigationTitle("Bluetooth MIDI").navigationBarTitleDisplayMode(.inline)
@@ -82,8 +83,11 @@ struct SequencerView: View {
         .onChange(of: store.song) { _, song in engine.update(song: song) }
         .onChange(of: panel) { _, value in if value != nil { follow = false } }
         .onChange(of: midi.selected) { _, _ in engine.stop() }
-        .onChange(of: engine.playing) { _, playing in UIApplication.shared.isIdleTimerDisabled = playing }
+        .onChange(of: engine.playing || drums.playing) { _, playing in
+            UIApplication.shared.isIdleTimerDisabled = playing
+        }
         .onChange(of: scenePhase) { _, phase in
+            if phase != .active { drums.stop() }
             if phase == .background { engine.stop() }
             if phase == .active { midi.refresh() }
         }
@@ -162,10 +166,14 @@ struct SequencerView: View {
             HStack {
                 if !wide { status.font(.caption.monospaced()) }
                 Spacer()
+                if drums.playing {
+                    Button("Stop drums", systemImage: "stop.fill") { drums.stop() }
+                        .font(.caption.weight(.semibold)).accessibilityIdentifier("stop-drums")
+                }
                 Button("Drums", systemImage: "square.grid.3x3.fill") {
-                    engine.stop()
                     showingDrums = true
                 }.font(.caption.weight(.semibold)).accessibilityIdentifier("open-drums")
+                    .accessibilityValue(drums.playing ? "Playing" : "Stopped")
             }
         }
     }

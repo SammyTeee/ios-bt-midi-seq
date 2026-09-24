@@ -57,6 +57,44 @@ final class SequencerUITests: XCTestCase {
         app.buttons["drum-done"].tap()
     }
 
+    func testDrumsKeepPlayingAcrossScreensAndStopInBackground() {
+        let app = XCUIApplication()
+        XCUIDevice.shared.orientation = .portrait
+        app.launch()
+        XCTAssertTrue(app.buttons["open-drums"].waitForExistence(timeout: 15))
+        app.buttons["open-drums"].tap()
+        let transport = app.buttons["drum-play"]
+        XCTAssertTrue(transport.waitForExistence(timeout: 5))
+        transport.tap()
+        XCTAssertEqual(transport.label, "Stop")
+        app.buttons["drum-done"].tap()
+        XCTAssertTrue(app.buttons["stop-drums"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["open-drums"].value as? String, "Playing")
+
+        app.buttons["step-record"].tap()
+        app.buttons["record-key-60"].tap()
+        XCTAssertTrue(app.buttons["stop-drums"].exists)
+        app.buttons["open-drums"].tap()
+        XCTAssertTrue(transport.waitForExistence(timeout: 5))
+        XCTAssertEqual(transport.label, "Stop")
+        XCTAssertFalse(app.buttons["drum-0-0"].isEnabled)
+        app.buttons["drum-done"].tap()
+        app.buttons["stop-drums"].tap()
+        XCTAssertEqual(app.buttons["open-drums"].value as? String, "Stopped")
+
+        app.buttons["open-drums"].tap()
+        XCTAssertTrue(transport.waitForExistence(timeout: 5))
+        XCTAssertEqual(transport.label, "Play")
+        transport.tap()
+        app.buttons["drum-done"].tap()
+        XCTAssertTrue(app.buttons["stop-drums"].waitForExistence(timeout: 5))
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.buttons["open-drums"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["open-drums"].value as? String, "Stopped")
+        XCTAssertFalse(app.buttons["stop-drums"].exists)
+    }
+
     private func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways
